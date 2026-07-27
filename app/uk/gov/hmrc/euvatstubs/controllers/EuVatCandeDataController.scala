@@ -17,11 +17,11 @@
 package uk.gov.hmrc.euvatstubs.controllers
 
 import play.api.Logging
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.euvatstubs.models.requests.AddPurchaseRequest
 import uk.gov.hmrc.euvatstubs.models.responses.{AddPurchaseResponse, ApplicationResponse}
-import uk.gov.hmrc.euvatstubs.models.{LatestApplication, LatestApplicationResponse}
+import uk.gov.hmrc.euvatstubs.models.{LatestApplication, LatestApplicationResponse, SupplierVrnCountRequest, SupplierVrnCountResponse}
 import uk.gov.hmrc.euvatstubs.repositories.VrnStateRepository
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -182,5 +182,25 @@ class EuVatCandeDataController @Inject() (cc: ControllerComponents, vrnStateRepo
     request.body.asJson.flatMap(_.asOpt[AddPurchaseRequest]) match {
       case None    => BadRequest("Invalid or missing request body")
       case Some(_) => Ok(Json.toJson(AddPurchaseResponse(itemNumber = 4, updateSequenceNumber = 1)))
+    }
+  }
+
+  def getSupplierVrnCount: Action[AnyContent] = Action { implicit request =>
+    logger.info("Stub: returning supplier VRN count")
+
+    request.body.asJson.flatMap(_.validate[SupplierVrnCountRequest].asOpt) match {
+      case None =>
+        BadRequest("Invalid or missing request body")
+
+      case Some(req) if req.vatNumber.endsWith("500") =>
+        InternalServerError("Simulated database connectivity failure")
+
+      case Some(req) =>
+        val count = req.vatNumber.takeRight(3) match {
+          case "111" => 1
+          case "222" => 2
+          case _     => 0
+        }
+        Ok(Json.toJson(SupplierVrnCountResponse(count)))
     }
   }
