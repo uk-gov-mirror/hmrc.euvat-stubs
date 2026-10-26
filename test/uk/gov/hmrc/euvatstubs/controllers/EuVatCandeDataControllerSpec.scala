@@ -962,4 +962,59 @@ class EuVatCandeDataControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(result) mustBe BAD_REQUEST
     }
   }
+
+  "EuVatCandeDataController.getReferenceInformationCount" should {
+
+    def requestWith(json: JsObject) =
+      FakeRequest("POST", "/rds-cande-proxy/get-reference-information-count")
+        .withJsonBody(json)
+        .withHeaders("Content-Type" -> "application/json")
+
+    val mandatoryJson = Json.obj(
+      "applicationId" -> 133,
+      "itemNumber"    -> 30
+    )
+
+    "return 200 with reference info count 0 when given itemNumber not ending in any of 000, 400, 500" in {
+      val result = controller.getReferenceInformationCount()(
+        requestWith(mandatoryJson)
+      )
+
+      status(result) mustBe OK
+      (contentAsJson(result) \ "count").as[Int] mustBe 0
+    }
+
+    "return 200 with reference info count 1 when given itemNumber ending in 000" in {
+      val result = controller.getReferenceInformationCount()(
+        requestWith(mandatoryJson + ("itemNumber" -> JsNumber(BigDecimal("123000"))))
+      )
+
+      status(result) mustBe OK
+      (contentAsJson(result) \ "count").as[Int] mustBe 1
+    }
+
+    "return 400 bad request when given empty request body" in {
+      val result = controller.getReferenceInformationCount()(
+        requestWith(JsObject.empty)
+      )
+
+      status(result) mustBe BAD_REQUEST
+    }
+
+    "itemNumber ending with 400 should return error with status code 400" in {
+      val result = controller.getReferenceInformationCount()(
+        requestWith(mandatoryJson + ("itemNumber" -> JsNumber(BigDecimal("123400"))))
+      )
+
+      status(result) mustBe BAD_REQUEST
+    }
+
+    "itemNumber ending with 500 should return error with status code 500" in {
+      val result = controller.getReferenceInformationCount()(
+        requestWith(mandatoryJson + ("itemNumber" -> JsNumber(BigDecimal("123500"))))
+      )
+
+      status(result) mustBe INTERNAL_SERVER_ERROR
+    }
+  }
 }

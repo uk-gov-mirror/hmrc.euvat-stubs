@@ -473,3 +473,21 @@ class EuVatCandeDataController @Inject() (cc: ControllerComponents, vrnStateRepo
         Ok(Json.obj("updateSequenceNumber" -> newSeq))
     }
   }
+
+  def getReferenceInformationCount: Action[AnyContent] = Action { implicit request =>
+    logger.info("Stub: getReferenceInformationCount called")
+
+    request.body.asJson.flatMap(_.asOpt[ReferenceInfoCountRequest]) match {
+      case None                                                 => BadRequest("Invalid or missing request body")
+      case Some(req) if req.itemNumber.toString.endsWith("500") => InternalServerError("simulated 5xx")
+      case Some(req) if req.itemNumber.toString.endsWith("400") => BadRequest("simulated 4xx")
+      case Some(req) if req.itemNumber.toString.endsWith("000") =>
+        // Existing reference information
+        logger.info(s"Stub getReferenceInformationCount: applicationId=${req.applicationId}, itemNumber=${req.itemNumber}")
+        Ok(Json.toJson(ReferenceInfoCountResponse(1)))
+      case Some(req) =>
+        // Ok reference information
+        logger.info(s"Stub getReferenceInformationCount: applicationId=${req.applicationId}, itemNumber=${req.itemNumber}")
+        Ok(Json.toJson(ReferenceInfoCountResponse(0)))
+    }
+  }
